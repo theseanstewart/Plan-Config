@@ -8,7 +8,7 @@ Pull the package in through Composer.
 
 ```js
 "require": {
-    "seanstewart/plan-config": "~1.0"
+    "seanstewart/plan-config": "dev-master"
 }
 ```
 
