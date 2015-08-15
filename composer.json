@@ -1,0 +1,24 @@
+{
+    "name": "seanstewart/plan-config",
+    "description": "Plan config allows you to easily define attributes and limits for your SaaS application subscription plans.",
+    "keywords": ["subscription plans", "saas", "plans", "config", "laravel", "laravel5"],
+    "homepage": "https://github.com/theseanstewart/Plan-Config",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Sean Stewart",
+            "email": "sean@ekoim.com"
+        }
+    ],
+    "require": {
+        "php": ">=5.4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Seanstewart\\PlanConfig\\": "src/"
+        },
+        "files": [
+            "src/functions.php"
+        ]
+    }
+}
