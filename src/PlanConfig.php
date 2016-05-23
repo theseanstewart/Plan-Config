@@ -8,21 +8,31 @@
 
 namespace Seanstewart\PlanConfig;
 
-
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Config;
 
 class PlanConfig {
 
     public $config;
 
-    public $fallbackPlan;
+    public $fallbackPlan = 'fallback_plan';
 
     protected $_prefix = 'plans';
 
-    function __construct()
+    /**
+     * @var Auth
+     */
+    protected $auth;
+
+    /**
+     * PlanConfig constructor.
+     * @param Config $config
+     * @param Auth $auth
+     */
+    function __construct(Config $config, Auth $auth)
     {
-        $this->config = array_dot(config('plans'));
-        $this->fallbackPlan = $this->config['fallback_plan'];
+        $this->auth = $auth;
+        $this->config = $config;
     }
 
     /**
@@ -35,22 +45,72 @@ class PlanConfig {
     {
         // If no plan is provided, get the user's plan
         if (!$plan)
-            $plan = $this->getUserPlan();
-
-        // If the key exists for this plan, return the value
-        if (array_key_exists($this->_prefix . '.' . $plan . '.' . $key, $this->config))
-            return $this->config[$this->_prefix . '.' . $plan . '.' . $key];
-
-        // If a fallback plan is set
-        if ($this->fallbackPlan)
         {
-            // If the key doesn't exist for the given plan, return the default value
-            if (array_key_exists($this->_prefix . '.' . $this->fallbackPlan . '.' . $key, $this->config))
-                return $this->config[$this->_prefix . '.' . $this->fallbackPlan . '.' . $key];
+            return $this->getPlanKey($key, $this->getUserPlan());
         }
 
-        // If there is no default value set, return false
+        return $this->getPlanKey($key, $plan);
+    }
+
+    /**
+     * @param $plan
+     * @return mixed
+     */
+    public function getPlan($plan)
+    {
+        $plans = $this->getConfig()['plans'];
+
+        if (array_key_exists($plan, $plans))
+        {
+            return $plans[$plan];
+        }
+
+        return $this->getFallbackPlan();
+    }
+
+    /**
+     * @param $key
+     * @param $plan
+     * @return bool
+     */
+    public function getPlanKey($key, $plan)
+    {
+        $plan = $this->getPlan($plan);
+
+        // Since the key should be sent as array_dot
+        // we need to convert the plan array to array_dot
+        $planDot = array_dot($plan);
+
+        if (array_key_exists($key, $planDot))
+        {
+            return $planDot[$key];
+        }
+
         return false;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getFallbackPlan()
+    {
+        return $this->getPlan($this->fallbackPlan);
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getConfig()
+    {
+        return Config::get('plans');
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getPlanOfUser()
+    {
+        return $this->getPlan($this->getUserPlan());
     }
 
     /**
@@ -61,7 +121,9 @@ class PlanConfig {
      */
     public function getUserPlan()
     {
-        return Auth::user()->{$this->config['plan_field']};
+        $config = $this->getConfig();
+
+        return Auth::user()->{$config['plan_field']};
     }
 
 }

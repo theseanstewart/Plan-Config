@@ -20,6 +20,14 @@ Include the service provider within `app/config/app.php`.
 ];
 ```
 
+Include the facade (optional) in `app/config/app.php`.
+
+```php
+'aliases' => [
+    'Plan'       => Seanstewart\PlanConfig\Plan::class
+];
+```
+
 Then you will need to generate your config by running the command
 
 ```js
@@ -152,6 +160,8 @@ And then define the _default plan in your plans array.
 ```
 
 In the above example, calling plan('limits.purple_widgets') will give you the value from the fallback plan.
+
+Alternatively you can use the facade and call Plan::get('limits.purple_widgets')
 
 # Why I created this
 

@@ -11,7 +11,12 @@
         }
     ],
     "require": {
-        "php": ">=5.4.0"
+        "php": ">=5.5.9",
+        "illuminate/support": "5.1.*"
+    },
+    "require-dev": {
+        "mockery/mockery": "dev-master@dev",
+        "phpunit/phpunit": "~4.1"
     },
     "autoload": {
         "psr-4": {

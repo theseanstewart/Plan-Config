@@ -25,7 +25,7 @@ class PlanConfigServiceProvider extends ServiceProvider {
     {
         $this->app->bind('planconfig', function ()
         {
-            return new PlanConfig();
+            return $this->app->make('Seanstewart\PlanConfig\PlanConfig');
         });
     }
 }
