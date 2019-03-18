@@ -8,6 +8,7 @@
 
 namespace Seanstewart\PlanConfig;
 
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Config;
 
@@ -81,6 +82,9 @@ class PlanConfig {
         // we need to convert the plan array to array_dot
         $planDot = array_dot($plan);
 
+        // Merge the plan data with the overrides
+        $planDot = array_merge($planDot, $this->getPlanOverrides());
+
         if (array_key_exists($key, $planDot))
         {
             return $planDot[$key];
@@ -103,6 +107,50 @@ class PlanConfig {
     public function getConfig()
     {
         return Config::get('plans');
+    }
+
+    /**
+     * @return array
+     */
+    public function getPlanOverrides()
+    {
+        $attribute = Config::get('plans.overrides.user_model_attribute');
+
+        if(!$attribute)
+        {
+            return [];
+        }
+
+        return $this->getAllowedOverrides($attribute);
+    }
+
+    /**
+     * @param $attribute
+     * @return array
+     */
+    public function getAllowedOverrides($attribute)
+    {
+        $user = Auth::user();
+
+        $keys = Config::get('plans.overrides.allowed');
+
+        // Check if the property exists. If so, return it, otherwise set overrides to null
+        $overrides = property_exists($user, $attribute) ? $user->{$attribute} : null;
+
+        // If we have no overrides, return an empty array
+        if(!$overrides)
+        {
+            return [];
+        }
+
+        // If we have overrides, and we're allowing all, return the overrides
+        if($keys == ['*'])
+        {
+            return Arr::dot($overrides);
+        }
+
+        // Only return the overrides that are allowed
+        return Arr::only(Arr::dot($overrides), $keys);
     }
 
     /**

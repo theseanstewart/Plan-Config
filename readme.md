@@ -127,7 +127,7 @@ To configure your plans, add your plan data in the 'plans' array.
 ]
 ```
 
-If you have rules that apply to all plays, you can define a default or fallback plan. In the config file, set your fallback plan...
+If you have rules that apply to all plans, you can define a default or fallback plan. In the config file, set your fallback plan...
 
 ```php
 'fallback_plan' => '_default',
@@ -162,6 +162,79 @@ And then define the _default plan in your plans array.
 In the above example, calling plan('limits.purple_widgets') will give you the value from the fallback plan.
 
 Alternatively you can use the facade and call Plan::get('limits.purple_widgets')
+
+### Overrides
+
+Plan config data can be overridden on the user level by setting an override attribute in the config.
+
+```
+'overrides' => [
+
+        // The user model attribute that stores the attributes that can be changed
+        'user_model_attribute' => 'plan_overrides',
+
+        // The keys that are allowed to be changed. Set to all by default (['*']).
+        'allowed' => ['*'],
+
+    ]
+
+```
+
+In the above example, you would create the *plan_overrides* attribute on the user model. This field should be casted as an array and should include the list of keys and values that should be overridden for the given user.
+
+#### Example
+
+**Plan Config with Overrides:**
+```
+'overrides' => [
+
+        'user_model_attribute' => 'plan_overrides',
+
+        'allowed' => ['limits.apples', 'limits.bananas'],
+
+    ],
+
+
+'plans' => [
+
+    '_default' => [
+        'limits' => [
+            'purple_widgets' => 20
+        ]
+    ]
+
+    'bronze'   => [
+        'limits' => [
+            'widgets' => 5,
+            'apples' => 10,
+            'bananas' => 15
+        ]
+    ],
+
+    'silver'   => [
+        'limits' => [
+            'widgets' => 10,
+            'apples' => 15,
+            'bananas' => 20
+        ],
+    ],
+
+]
+```
+
+**User Model** *plan_overrides* attribute:
+```
+['limits.widgets' => 1, 'limits.apples' => 50, 'limits.bananas' => 100]
+```
+
+Would result in the following...
+
+|  Key | Call | Result | Overridden? |
+| --- | --- | --- | --- |
+| limits.widgets | `plan('limits.widgets');` | **10** | No |
+| limits.apples | `plan('limits.apples');` | **50** | Yes |
+| limits.bananas | `plan('limits.bananas');` | **100** | Yes |
+
 
 # Why I created this
 
