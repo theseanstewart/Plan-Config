@@ -130,12 +130,12 @@ class PlanConfig {
      */
     public function getAllowedOverrides($attribute)
     {
-        $user = Auth::user();
+        $user = $this->getAuthenticatedUser();
 
         $keys = Config::get('plans.overrides.allowed');
 
         // Check if the property exists. If so, return it, otherwise set overrides to null
-        $overrides = property_exists($user, $attribute) ? $user->{$attribute} : null;
+        $overrides = Arr::get($user, $attribute);
 
         // If we have no overrides, return an empty array
         if(!$overrides)
@@ -171,7 +171,15 @@ class PlanConfig {
     {
         $config = $this->getConfig();
 
-        return Auth::user()->{$config['plan_field']};
+        return Arr::get($this->getAuthenticatedUser(), $config['plan_field']);
+    }
+
+    /**
+     * @return array
+     */
+    public function getAuthenticatedUser()
+    {
+        return Auth::check() ? Auth::getUser() : [];
     }
 
 }

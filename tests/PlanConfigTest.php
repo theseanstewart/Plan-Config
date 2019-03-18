@@ -116,15 +116,15 @@ class PlanConfigTest extends PHPUnit_Framework_TestCase {
      */
     public function it_gets_user_plan()
     {
-        $planConfig = $this->getMock('SeanStewart\PlanConfig\PlanConfig', ['getConfig'], [$this->config, $this->auth]);
+        $planConfig = $this->getMock('SeanStewart\PlanConfig\PlanConfig', ['getConfig', 'getAuthenticatedUser'], [$this->config, $this->auth]);
 
         $planConfig->expects($this->once())
                    ->method('getConfig')
                    ->willReturn(['plan_field' => 'stripe_plan']);
 
-        $this->auth->shouldReceive('user')
-                   ->once()
-                   ->andReturn((object) ['stripe_plan' => 'this_is_the_plan']);
+        $planConfig->expects($this->once())
+                   ->method('getAuthenticatedUser')
+                   ->willReturn(['stripe_plan' => 'this_is_the_plan']);
 
         $this->assertEquals('this_is_the_plan', $planConfig->getUserPlan());
     }
@@ -221,7 +221,7 @@ class PlanConfigTest extends PHPUnit_Framework_TestCase {
      */
     public function it_tests_get_allowed_overrides_no_overrides()
     {
-        $planConfig = $this->getMock('SeanStewart\PlanConfig\PlanConfig', ['getPlan'], [$this->config, $this->auth]);
+        $planConfig = $this->getMock('SeanStewart\PlanConfig\PlanConfig', ['getPlan', 'getAuthenticatedUser'], [$this->config, $this->auth]);
 
         $overrides = null;
 
@@ -230,9 +230,9 @@ class PlanConfigTest extends PHPUnit_Framework_TestCase {
               ->with('plans.overrides.allowed')
               ->andReturn(null);
 
-        $this->auth->shouldReceive('user')
-                   ->once()
-                   ->andReturn((object) ['plan_overrides' => $overrides]);
+        $planConfig->expects($this->once())
+            ->method('getAuthenticatedUser')
+            ->willReturn([]);
 
         $this->assertEquals([], $planConfig->getAllowedOverrides('plan_overrides'));
     }
@@ -242,7 +242,7 @@ class PlanConfigTest extends PHPUnit_Framework_TestCase {
      */
     public function it_tests_get_allowed_overrides_key_not_set()
     {
-        $planConfig = $this->getMock('SeanStewart\PlanConfig\PlanConfig', ['getPlan'], [$this->config, $this->auth]);
+        $planConfig = $this->getMock('SeanStewart\PlanConfig\PlanConfig', ['getPlan', 'getAuthenticatedUser'], [$this->config, $this->auth]);
 
         $overrides = null;
 
@@ -251,9 +251,9 @@ class PlanConfigTest extends PHPUnit_Framework_TestCase {
               ->with('plans.overrides.allowed')
               ->andReturn(null);
 
-        $this->auth->shouldReceive('user')
-                   ->once()
-                   ->andReturn((object) ['foo' => $overrides]);
+        $planConfig->expects($this->once())
+                   ->method('getAuthenticatedUser')
+                   ->willReturn(['foo' => $overrides]);
 
         $this->assertEquals([], $planConfig->getAllowedOverrides('plan_overrides'));
     }
@@ -263,7 +263,7 @@ class PlanConfigTest extends PHPUnit_Framework_TestCase {
      */
     public function it_tests_get_allowed_overrides_allows_all_keys()
     {
-        $planConfig = $this->getMock('SeanStewart\PlanConfig\PlanConfig', ['getPlan'], [$this->config, $this->auth]);
+        $planConfig = $this->getMock('SeanStewart\PlanConfig\PlanConfig', ['getPlan', 'getAuthenticatedUser'], [$this->config, $this->auth]);
 
         $overrides = ['foo' => [ 'bar' => 'foobar' ]];
 
@@ -272,9 +272,9 @@ class PlanConfigTest extends PHPUnit_Framework_TestCase {
               ->with('plans.overrides.allowed')
               ->andReturn(['*']);
 
-        $this->auth->shouldReceive('user')
-                   ->once()
-                   ->andReturn((object) ['plan_overrides' => $overrides]);
+        $planConfig->expects($this->once())
+                   ->method('getAuthenticatedUser')
+                   ->willReturn(['plan_overrides' => $overrides]);
 
         $this->assertEquals(['foo.bar' => 'foobar'], $planConfig->getAllowedOverrides('plan_overrides'));
     }
@@ -285,7 +285,7 @@ class PlanConfigTest extends PHPUnit_Framework_TestCase {
      */
     public function it_tests_get_allowed_overrides_returns_allowed_only()
     {
-        $planConfig = $this->getMock('SeanStewart\PlanConfig\PlanConfig', ['getPlan'], [$this->config, $this->auth]);
+        $planConfig = $this->getMock('SeanStewart\PlanConfig\PlanConfig', ['getPlan', 'getAuthenticatedUser'], [$this->config, $this->auth]);
 
         $overrides = [
             'foo'        => ['bar' => 'foobar'],
@@ -299,14 +299,50 @@ class PlanConfigTest extends PHPUnit_Framework_TestCase {
               ->with('plans.overrides.allowed')
               ->andReturn(['foo.bar', 'yes.foobar', 'foobarfoobar']);
 
-        $this->auth->shouldReceive('user')
-                   ->once()
-                   ->andReturn((object) ['plan_overrides' => $overrides]);
+        $planConfig->expects($this->once())
+                   ->method('getAuthenticatedUser')
+                   ->willReturn(['plan_overrides' => $overrides]);
 
         $this->assertEquals([
             'foo.bar'    => 'foobar',
             'yes.foobar' => 'yeah',
             'foobarfoobar' => 123
         ], $planConfig->getAllowedOverrides('plan_overrides'));
+    }
+
+    /**
+     * @test
+     */
+    public function it_tests_get_authenticated_user()
+    {
+        $planConfig = $this->getMock('SeanStewart\PlanConfig\PlanConfig', ['getPlan'], [$this->config, $this->auth]);
+
+        Auth::shouldReceive('check')
+                   ->once()
+                   ->andReturn(true);
+
+        $user = ['id' => 123];
+
+        Auth::shouldReceive('getUser')
+            ->once()
+            ->andReturn($user);
+
+        $this->assertEquals($user, $planConfig->getAuthenticatedUser());
+    }
+
+    /**
+     * @test
+     */
+    public function it_tests_get_authenticated_user_not_logged_in()
+    {
+        $planConfig = $this->getMock('SeanStewart\PlanConfig\PlanConfig', ['getPlan'], [$this->config, $this->auth]);
+
+        Auth::shouldReceive('check')
+            ->andReturn(false);
+
+        Auth::shouldReceive('getUser')->never();
+
+        $this->assertEquals([], $planConfig->getAuthenticatedUser());
+
     }
 }
