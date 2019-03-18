@@ -134,15 +134,39 @@ class PlanConfigTest extends PHPUnit_Framework_TestCase {
      */
     public function it_tests_get_plan_key()
     {
-        $planConfig = $this->getMock('SeanStewart\PlanConfig\PlanConfig', ['getPlan'], [$this->config, $this->auth]);
+        $planConfig = $this->getMock('SeanStewart\PlanConfig\PlanConfig', ['getPlan', 'getPlanOverrides'], [$this->config, $this->auth]);
 
         $planConfig->expects($this->exactly(2))
                    ->method('getPlan')
                    ->with('plan')
                    ->willReturnOnConsecutiveCalls(['foo' => ['bar' => 'value']], ['foo' => 'bar']);
 
+        $planConfig->expects($this->exactly(2))
+                   ->method('getPlanOverrides')
+                   ->willReturn([]);
+
         $this->assertEquals('value', $planConfig->getPlanKey('foo.bar', 'plan'));
         $this->assertFalse($planConfig->getPlanKey('foo.bar', 'plan'));
+    }
+
+    /**
+     * @test
+     */
+    public function it_tests_get_plan_key_with_overrides()
+    {
+        $planConfig = $this->getMock('SeanStewart\PlanConfig\PlanConfig', ['getPlan', 'getPlanOverrides'], [$this->config, $this->auth]);
+
+        $planConfig->expects($this->exactly(2))
+                   ->method('getPlan')
+                   ->with('plan')
+                   ->willReturnOnConsecutiveCalls(['foo' => ['bar' => 'value']], ['foo' => 'bar']);
+
+        $planConfig->expects($this->exactly(2))
+                   ->method('getPlanOverrides')
+                   ->willReturnOnConsecutiveCalls(['foo.bar' => 'override', 'extra.key' => 'foo'], []);
+
+        $this->assertEquals('override', $planConfig->getPlanKey('foo.bar', 'plan'));
+        $this->assertEquals('bar', $planConfig->getPlanKey('foo', 'plan'));
     }
 
     /**
@@ -164,5 +188,125 @@ class PlanConfigTest extends PHPUnit_Framework_TestCase {
         $this->assertTrue($planConfig->getPlanOfUser());
     }
 
+    /**
+     * @test
+     */
+    public function it_tests_get_plan_overrides()
+    {
+        $planConfig = $this->getMock('SeanStewart\PlanConfig\PlanConfig', ['getAllowedOverrides'], [$this->config, $this->auth]);
 
+        $overrides = ['foo.bar' => 'foo'];
+
+        Config::shouldReceive('get')
+              ->once()
+              ->with('plans.overrides.user_model_attribute')
+              ->andReturn(null);
+
+        Config::shouldReceive('get')
+              ->once()
+              ->with('plans.overrides.user_model_attribute')
+              ->andReturn('plan_overrides');
+
+        $planConfig->expects($this->once())
+                   ->method('getAllowedOverrides')
+                   ->with('plan_overrides')
+                   ->willReturn($overrides);
+
+        $this->assertEquals([], $planConfig->getPlanOverrides());
+        $this->assertEquals($overrides, $planConfig->getPlanOverrides());
+    }
+
+    /**
+     * @test
+     */
+    public function it_tests_get_allowed_overrides_no_overrides()
+    {
+        $planConfig = $this->getMock('SeanStewart\PlanConfig\PlanConfig', ['getPlan'], [$this->config, $this->auth]);
+
+        $overrides = null;
+
+        Config::shouldReceive('get')
+              ->once()
+              ->with('plans.overrides.allowed')
+              ->andReturn(null);
+
+        $this->auth->shouldReceive('user')
+                   ->once()
+                   ->andReturn((object) ['plan_overrides' => $overrides]);
+
+        $this->assertEquals([], $planConfig->getAllowedOverrides('plan_overrides'));
+    }
+
+    /**
+     * @test
+     */
+    public function it_tests_get_allowed_overrides_key_not_set()
+    {
+        $planConfig = $this->getMock('SeanStewart\PlanConfig\PlanConfig', ['getPlan'], [$this->config, $this->auth]);
+
+        $overrides = null;
+
+        Config::shouldReceive('get')
+              ->once()
+              ->with('plans.overrides.allowed')
+              ->andReturn(null);
+
+        $this->auth->shouldReceive('user')
+                   ->once()
+                   ->andReturn((object) ['foo' => $overrides]);
+
+        $this->assertEquals([], $planConfig->getAllowedOverrides('plan_overrides'));
+    }
+
+    /**
+     * @test
+     */
+    public function it_tests_get_allowed_overrides_allows_all_keys()
+    {
+        $planConfig = $this->getMock('SeanStewart\PlanConfig\PlanConfig', ['getPlan'], [$this->config, $this->auth]);
+
+        $overrides = ['foo' => [ 'bar' => 'foobar' ]];
+
+        Config::shouldReceive('get')
+              ->once()
+              ->with('plans.overrides.allowed')
+              ->andReturn(['*']);
+
+        $this->auth->shouldReceive('user')
+                   ->once()
+                   ->andReturn((object) ['plan_overrides' => $overrides]);
+
+        $this->assertEquals(['foo.bar' => 'foobar'], $planConfig->getAllowedOverrides('plan_overrides'));
+    }
+
+    /**
+     * @test
+     * @group 123
+     */
+    public function it_tests_get_allowed_overrides_returns_allowed_only()
+    {
+        $planConfig = $this->getMock('SeanStewart\PlanConfig\PlanConfig', ['getPlan'], [$this->config, $this->auth]);
+
+        $overrides = [
+            'foo'        => ['bar' => 'foobar'],
+            'yes'        => ['foobar' => 'yeah'],
+            'foobarfoobar' => 123,
+            'nooverride' => 'foo'
+        ];
+
+        Config::shouldReceive('get')
+              ->once()
+              ->with('plans.overrides.allowed')
+              ->andReturn(['foo.bar', 'yes.foobar', 'foobarfoobar']);
+
+        $this->auth->shouldReceive('user')
+                   ->once()
+                   ->andReturn((object) ['plan_overrides' => $overrides]);
+
+        $this->assertEquals([
+            'foo.bar'    => 'foobar',
+            'yes.foobar' => 'yeah',
+            'foobarfoobar' => 123
+        ], $planConfig->getAllowedOverrides('plan_overrides'));
+    }
 }

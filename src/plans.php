@@ -28,6 +28,24 @@ return [
 
     /*
 	|--------------------------------------------------------------------------
+	| Overrides
+	|--------------------------------------------------------------------------
+	|
+	| Here you can specify which keys can have their values changed using a model attribute
+	*/
+
+    'overrides' => [
+
+        // The user model attribute that stores the attributes that can be changed
+        'user_model_attribute' => 'plan_overrides',
+
+        // The keys that are allowed to be changed. Set to all by default (['*']).
+        'allowed' => ['*'],
+
+    ],
+
+    /*
+	|--------------------------------------------------------------------------
 	| Subscription plans
 	|--------------------------------------------------------------------------
 	|
