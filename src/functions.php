@@ -5,10 +5,10 @@ if ( ! function_exists('plan')) {
 
     /**
      * @param $key
-     * @param string $plan
+     * @param string|array|object $plan
      * @return mixed
      */
-    function plan($key, $plan = '')
+    function plan($key, $plan = null)
     {
         $planConfig = app('planconfig');
 
