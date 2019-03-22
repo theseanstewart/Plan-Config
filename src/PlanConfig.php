@@ -16,14 +16,30 @@ class PlanConfig {
 
     public $config;
 
-    public $fallbackPlan = 'fallback_plan';
+    /**
+     * @var string
+     */
+    protected $fallbackPlan = [];
 
-    protected $_prefix = 'plans';
+    /**
+     * @var
+     */
+    protected $configPlanField;
 
     /**
      * @var Auth
      */
     protected $auth;
+
+    /**
+     * @var
+     */
+    protected $currentUserPlanOverrides = [];
+
+    /**
+     * @var
+     */
+    protected $currentUserPlan;
 
     /**
      * PlanConfig constructor.
@@ -39,18 +55,31 @@ class PlanConfig {
     /**
      * Get the config key
      * @param $key
-     * @param null $plan
+     * @param string|object|array $plan
      * @return bool
      */
     public function get($key, $plan = null)
     {
-        // If no plan is provided, get the user's plan
-        if (!$plan)
+        // If a string is provided, then we want to look up the key for a given plan
+        if (is_string($plan))
         {
-            return $this->getPlanKey($key, $this->getUserPlan());
+            return $this->getPlanKey($key, $plan);
         }
 
-        return $this->getPlanKey($key, $plan);
+        // If the provided plan is not a string, then we are looking up a plan for a specific user and not
+        // the actual config for a specific plan. This allows us to factor in the user's overrides
+        $this->setContext($plan);
+
+        return $this->getPlanKey($key, $this->getCurrentUserPlan());
+    }
+
+    /**
+     * Returns all plans
+     * @return mixed
+     */
+    public function getAllPlans()
+    {
+        return $this->getConfig('plans');
     }
 
     /**
@@ -59,14 +88,9 @@ class PlanConfig {
      */
     public function getPlan($plan)
     {
-        $plans = $this->getConfig()['plans'];
+        $plans = $this->getConfig('plans');
 
-        if (array_key_exists($plan, $plans))
-        {
-            return $plans[$plan];
-        }
-
-        return $this->getFallbackPlan();
+        return Arr::get($plans, $plan, $this->getFallbackPlan());
     }
 
     /**
@@ -80,98 +104,88 @@ class PlanConfig {
 
         // Since the key should be sent as array_dot
         // we need to convert the plan array to array_dot
-        $planDot = array_dot($plan);
+        $planDot = Arr::dot($plan);
 
         // Merge the plan data with the overrides
-        $planDot = array_merge($planDot, $this->getPlanOverrides());
+        $planDot = array_merge($planDot, $this->getAllowedOverrides());
 
-        if (array_key_exists($key, $planDot))
-        {
-            return $planDot[$key];
-        }
-
-        return false;
+        return Arr::get($planDot, $key, null);
     }
 
     /**
+     * Returns the default fallback plan
      * @return mixed
      */
     public function getFallbackPlan()
     {
-        return $this->getPlan($this->fallbackPlan);
+        return Arr::get($this->getAllPlans(), $this->getConfig('fallback_plan'), []);
     }
 
     /**
+     * Returns the config for this package.
+     * If a key is provided, then the value of the key will be returned.
+     * If a key is provided and it doesn't exist, then the default value will be returned.
+     * will be returned.
+     * @param null $key
+     * @param null $default
      * @return mixed
      */
-    public function getConfig()
+    public function getConfig($key = null, $default = null)
     {
-        return Config::get('plans');
+        $config = Config::get('plans');
+
+        return $key ? Arr::get($config, $key, $default) : $config;
     }
 
     /**
+     * Returns the user's plan overrides with only the keys allowed from the config
      * @return array
      */
-    public function getPlanOverrides()
+    public function getAllowedOverrides()
     {
-        $attribute = Config::get('plans.overrides.user_model_attribute');
+        $allowed = $this->getConfig('overrides.allowed');
 
-        if(!$attribute)
-        {
-            return [];
-        }
+        $overrides = $this->getCurrentUserPlanOverrides();
 
-        return $this->getAllowedOverrides($attribute);
-    }
-
-    /**
-     * @param $attribute
-     * @return array
-     */
-    public function getAllowedOverrides($attribute)
-    {
-        $user = $this->getAuthenticatedUser();
-
-        $keys = Config::get('plans.overrides.allowed');
-
-        // Check if the property exists. If so, return it, otherwise set overrides to null
-        $overrides = Arr::get($user, $attribute);
-
-        // If we have no overrides, return an empty array
-        if(!$overrides)
-        {
-            return [];
-        }
-
-        // If we have overrides, and we're allowing all, return the overrides
-        if($keys == ['*'])
+        // If we are allowing all overrides, then return all
+        if ($allowed == ['*'])
         {
             return Arr::dot($overrides);
         }
 
         // Only return the overrides that are allowed
-        return Arr::only(Arr::dot($overrides), $keys);
+        return Arr::only(Arr::dot($overrides), $allowed);
     }
 
     /**
-     * @return mixed
+     * Returns the user's plan overrides
+     * @param $user
+     * @return array
      */
-    public function getPlanOfUser()
+    public function extractUserPlanOverrides($user)
     {
-        return $this->getPlan($this->getUserPlan());
+        $attribute = $this->getConfig('overrides.user_model_attribute');
+
+        // If this value is null, return an empty array
+        if (!$attribute)
+        {
+            return [];
+        }
+
+        // Get the overrides from the user. If none, return an empty array.
+        return Arr::get($user, $attribute, []);
     }
 
     /**
-     * Return the value of the plan field from User model
-     * The plan is defined in the plans.php config
-     *
-     * @return mixed
+     * Returns the user's plan
+     * @param $user
+     * @return string
      */
-    public function getUserPlan()
+    public function extractUserPlan($user)
     {
-        $config = $this->getConfig();
+        $modelPlanAttribute = $this->getConfig('plan_field');
 
-        return Arr::get($this->getAuthenticatedUser(), $config['plan_field']);
+        return Arr::get($user, $modelPlanAttribute);
     }
 
     /**
@@ -180,6 +194,40 @@ class PlanConfig {
     public function getAuthenticatedUser()
     {
         return Auth::check() ? Auth::getUser() : [];
+    }
+
+    /**
+     * Sets the user context for looking up the plan
+     * @param $user
+     */
+    public function setContext($user)
+    {
+        // If a user isn't provided, then we want to get the authenticated user
+        if(!$user)
+        {
+            $user = $this->getAuthenticatedUser();
+        }
+
+        $this->currentUserPlan = $this->extractUserPlan($user);
+        $this->currentUserPlanOverrides = $this->extractUserPlanOverrides($user);
+    }
+
+    /**
+     * Provides the current user's plan
+     * @return mixed
+     */
+    public function getCurrentUserPlan()
+    {
+        return $this->currentUserPlan;
+    }
+
+    /**
+     * Provides the current user's overrides
+     * @return array
+     */
+    public function getCurrentUserPlanOverrides()
+    {
+        return $this->currentUserPlanOverrides;
     }
 
 }

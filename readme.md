@@ -97,6 +97,16 @@ If your user is subscribed to the silver plan, they could only add 10 widgets. Y
 ]
 ```
 
+
+#### Get a Plan's Config Without the User
+
+In the case where a specific plan config is needed, you can pass in the plan's code as a string for the 2nd argument:
+
+```
+plan('limits.widgets', 'bronze'); // Returns 5
+plan('limits.widgets', 'silver'); // Returns 10
+```
+
 # Configuring Your Plans
 
 To configure your plans, open up app/plans.php and start adding your plan details. By default the package assumes that you're using laravel's built in Auth, and that the user's plan is stored in the User model. You can set the field used to determine the user's plan in the config...
@@ -229,11 +239,14 @@ In the above example, you would create the *plan_overrides* attribute on the use
 
 Would result in the following...
 
-|  Key | Call | Result | Overridden? |
-| --- | --- | --- | --- |
-| limits.widgets | `plan('limits.widgets');` | **10** | No |
-| limits.apples | `plan('limits.apples');` | **50** | Yes |
-| limits.bananas | `plan('limits.bananas');` | **100** | Yes |
+|  User's Plan | Key | Call | Result | Overridden? |
+| --- | --- | --- | --- | --- |
+| silver | limits.widgets | `plan('limits.widgets');` | **10** | No |
+| silver | limits.apples | `plan('limits.apples');` | **50** | Yes |
+| silver | limits.bananas | `plan('limits.bananas');` | **100** | Yes |
+| silver | limits.bananas | `plan('limits.bananas', 'silver')` | 20 | No |
+| bronze | limits.bananas | `plan('limits.bananas', 'silver')` | 20 | No |
+| bronze | limits.bananas | `plan('limits.bananas', $user)` | 100 | Yes |
 
 
 # Why I created this
