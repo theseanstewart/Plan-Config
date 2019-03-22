@@ -109,6 +109,11 @@ class PlanConfig {
         // Merge the plan data with the overrides
         $planDot = array_merge($planDot, $this->getAllowedOverrides());
 
+        if($key == '*')
+        {
+            return $planDot;
+        }
+
         return Arr::get($planDot, $key, null);
     }
 
