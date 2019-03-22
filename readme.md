@@ -248,6 +248,11 @@ Would result in the following...
 | bronze | limits.bananas | `plan('limits.bananas', 'silver')` | 20 | No |
 | bronze | limits.bananas | `plan('limits.bananas', $user)` | 100 | Yes |
 
+If you want to return a user's entire plan config (along with overrides), you can pass in `*` as the first argument.
+
+```
+plan('*');
+```
 
 # Why I created this
 

@@ -267,22 +267,29 @@ class PlanConfigTest extends TestCase {
     {
         $planConfig = $this->getMock('SeanStewart\PlanConfig\PlanConfig', ['getPlan', 'getAllowedOverrides'], [$this->config, $this->auth]);
 
-        $planConfig->expects($this->exactly(3))
+        $completePlan = ['foo' => ['bar' => 'value'], 'barfoo' => 'abc123'];
+
+        $planConfig->expects($this->exactly(4))
                    ->method('getPlan')
                    ->with('plan')
                    ->willReturnOnConsecutiveCalls(
                        ['foo' => ['bar' => 'value']],
                        ['foo' => 'bar'],
-                       ['foo' => ['bar' => 'value'], 'barfoo' => 'abc123']
+                       ['foo' => ['bar' => 'value'], 'barfoo' => 'abc123'],
+                       $completePlan
                    );
 
-        $planConfig->expects($this->exactly(3))
+        $planConfig->expects($this->exactly(4))
                    ->method('getAllowedOverrides')
-                   ->willReturnOnConsecutiveCalls([], [], ['barfoo' => 'barfoobarfoo']);
+                   ->willReturnOnConsecutiveCalls([], [], ['barfoo' => 'barfoobarfoo'], ['barfoo' => 'barfoobarfoo']);
 
         $this->assertEquals('value', $planConfig->getPlanKey('foo.bar', 'plan'));
         $this->assertNull($planConfig->getPlanKey('foo.bar', 'plan'));
         $this->assertEquals('barfoobarfoo', $planConfig->getPlanKey('barfoo', 'plan'));
+        $this->assertEquals([
+            'foo.bar' => 'value',
+            'barfoo' => 'barfoobarfoo'
+        ], $planConfig->getPlanKey('*', 'plan'));
 
     }
 
