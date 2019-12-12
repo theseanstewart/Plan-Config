@@ -11,12 +11,12 @@
         }
     ],
     "require": {
-        "php": ">=5.6",
-        "illuminate/support": ">=5.0 <=5.4"
+        "php": ">=7.0",
+        "illuminate/support": "~5.5"
     },
     "require-dev": {
-        "mockery/mockery": "dev-master@dev",
-        "phpunit/phpunit": "~4.1",
+        "mockery/mockery": "~1.0",
+        "phpunit/phpunit": "~6.0",
         "orchestra/testbench": "^3.2"
     },
     "autoload": {
@@ -26,6 +26,16 @@
         "files": [
             "src/functions.php"
         ]
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Seanstewart\\PlanConfig\\PlanConfigServiceProvider"
+            ],
+            "aliases": {
+                "Plan": "Seanstewart\\PlanConfig\\Plan"
+            }
+        }
     },
     "minimum-stability": "stable"
 }

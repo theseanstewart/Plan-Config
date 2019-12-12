@@ -37,6 +37,29 @@ class PlanConfigTest extends TestCase {
     }
 
     /**
+     * The getMock() method was deprecated in phpunit 6.0. Instead of going through the trouble updating mocks in the
+     * tests, we just recreated the method from previous versions of phpunit but customized for our use case.
+     *
+     * Returns a mock object for the specified class.
+     *
+     * @param string $originalClassName Name of the class to mock.
+     * @param array|null $methods When provided, only methods whose names are in the array
+     *                                            are replaced with a configurable test double. The behavior
+     *                                            of the other methods is not changed.
+     *                                            Providing null means that no methods will be replaced.
+     * @param array $arguments Parameters to pass to the original class' constructor.
+     *
+     * @return PHPUnit_Framework_MockObject_MockObject
+     */
+    private function getMock($originalClassName, $methods = [], array $arguments = [])
+    {
+        return $this->getMockBuilder($originalClassName)
+                    ->setConstructorArgs($arguments)
+                    ->setMethods($methods)
+                    ->getMock();
+    }
+
+    /**
      * @test
      * @group function
      */
@@ -73,6 +96,7 @@ class PlanConfigTest extends TestCase {
      */
     public function it_tests_get_with_null_for_plan()
     {
+
         $planConfig = $this->getMock('SeanStewart\PlanConfig\PlanConfig', ['setContext', 'getCurrentUserPlan', 'getPlanKey'], [$this->config, $this->auth]);
 
         $planConfig->expects($this->once())
@@ -181,8 +205,8 @@ class PlanConfigTest extends TestCase {
                    ->willReturnOnConsecutiveCalls($planGroup1, $planGroup2);
 
         $planConfig->expects($this->exactly(2))
-            ->method('getFallbackPlan')
-            ->willReturnOnConsecutiveCalls($fallbackPlan, $fallbackPlan);
+                   ->method('getFallbackPlan')
+                   ->willReturnOnConsecutiveCalls($fallbackPlan, $fallbackPlan);
 
         $this->assertEquals($planGroup1['plan_1'], $planConfig->getPlan('plan_1'));
         $this->assertEquals($fallbackPlan, $planConfig->getPlan('plan_2'));
@@ -197,8 +221,8 @@ class PlanConfigTest extends TestCase {
 
         $plans = [
             'default' => ['bar' => 'foo'],
-            'plan_1' => ['foo1' => 'bar1'],
-            'plan_2' => ['foo2' => 'bar2']
+            'plan_1'  => ['foo1' => 'bar1'],
+            'plan_2'  => ['foo2' => 'bar2']
         ];
 
         $planConfig->expects($this->once())
@@ -288,7 +312,7 @@ class PlanConfigTest extends TestCase {
         $this->assertEquals('barfoobarfoo', $planConfig->getPlanKey('barfoo', 'plan'));
         $this->assertEquals([
             'foo.bar' => 'value',
-            'barfoo' => 'barfoobarfoo'
+            'barfoo'  => 'barfoobarfoo'
         ], $planConfig->getPlanKey('*', 'plan'));
 
     }

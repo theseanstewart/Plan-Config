@@ -4,15 +4,17 @@ This Laravel 5 package makes it easy to manage the rules/limits of your SaaS app
 
 ## How to install
 
-Pull the package in through Composer.
+Require the package with composer
 
-```js
-"require": {
-    "seanstewart/plan-config": "dev-master"
-}
+```
+composer require seanstewart/plan-config
 ```
 
-Include the service provider within `app/config/app.php`.
+Laravel 5.5 uses Package Auto-Discovery and it is not necessary to manually add the ServiceProvider.
+
+### Laravel 5.5+:
+
+If you don't use auto-discovery, add the ServiceProvider to the providers array in config/app.php
 
 ```php
 'providers' => [
@@ -31,7 +33,7 @@ Include the facade (optional) in `app/config/app.php`.
 Then you will need to generate your config by running the command
 
 ```js
-php artisan vendor:publish
+php artisan vendor:publish --provider="Seanstewart\PlanConfig\PlanConfigServiceProvider"
 ```
 
 ## How to Use
